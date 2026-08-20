@@ -1,0 +1,20 @@
+{
+  "name": "จับคู่ผัก & ผลไม้ — Veggie & Fruit Match",
+  "short_name": "จับคู่ผักผลไม้",
+  "description": "เกมเปิดการ์ดจับคู่ผักและผลไม้ เรียนคำศัพท์ไทย–อังกฤษ เล่นได้ลื่นบนมือถือ",
+  "lang": "th",
+  "dir": "ltr",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f3faf1",
+  "theme_color": "#2f8f4e",
+  "categories": ["games", "education", "kids"],
+  "icons": [
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml" },
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

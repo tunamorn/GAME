@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>จับคู่ผักผลไม้ · Veggie & Fruit Match</title>
+<meta name="description" content="เกมเปิดการ์ดจับคู่ผักและผลไม้ เรียนคำศัพท์ไทย–อังกฤษ เล่นบนมือถือได้ลื่นไหล ติดตั้งเป็นแอปและเล่นออฟไลน์ได้">
+<meta name="theme-color" content="#2f8f4e">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="จับคู่ผักผลไม้">
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+
+  :root {
+    --bg: #f3faf1;
+    --bg-2: #e4f3e0;
+    --surface: #ffffff;
+    --surface-2: #f6f9f4;
+    --ink: #21331f;
+    --ink-soft: #5c7159;
+    --line: #d8e8d3;
+    --brand: #2f8f4e;
+    --brand-ink: #1f6a39;
+    --fruit: #e4572e;
+    --veg: #3f8f3a;
+    --gold: #d98b23;
+    --card-back-a: #57b96f;
+    --card-back-b: #2f8f4e;
+    --shadow: 0 2px 0 rgba(31, 106, 57, .18), 0 6px 18px rgba(31, 106, 57, .10);
+    --radius: 16px;
+    --tap: 46px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #141b14;
+      --bg-2: #1b241a;
+      --surface: #1f2a1e;
+      --surface-2: #263123;
+      --ink: #e9f3e6;
+      --ink-soft: #a2b89e;
+      --line: #33452f;
+      --brand: #4fb56f;
+      --brand-ink: #79d093;
+      --fruit: #ff8b63;
+      --veg: #7ed07a;
+      --gold: #f0b455;
+      --card-back-a: #2f6b42;
+      --card-back-b: #1d4a2c;
+      --shadow: 0 2px 0 rgba(0, 0, 0, .35), 0 6px 18px rgba(0, 0, 0, .3);
+    }
+  }
+
+  html, body { height: 100%; }
+
+  body {
+    margin: 0;
+    font-family: "Noto Sans Thai", "IBM Plex Sans Thai", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    color: var(--ink);
+    background: linear-gradient(170deg, var(--bg) 0%, var(--bg-2) 100%);
+    overflow: hidden;
+    overscroll-behavior: none;
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  #app {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    padding: calc(env(safe-area-inset-top) + 8px) calc(env(safe-area-inset-right) + 10px)
+             calc(env(safe-area-inset-bottom) + 8px) calc(env(safe-area-inset-left) + 10px);
+  }
+
+  /* ---------- shared bits ---------- */
+  .btn {
+    font: inherit;
+    font-weight: 700;
+    color: var(--ink);
+    background: var(--surface);
+    border: 1.5px solid var(--line);
+    border-radius: 999px;
+    min-height: var(--tap);
+    min-width: var(--tap);
+    padding: 0 18px;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform .12s ease, background .12s ease, border-color .12s ease;
+  }
+  .btn:active { transform: scale(.95); }
+  .btn.primary {
+    background: var(--brand);
+    border-color: var(--brand);
+    color: #fff;
+    box-shadow: var(--shadow);
+  }
+  .btn.icon { padding: 0; display: grid; place-items: center; font-size: 1.15rem; }
+  .btn[aria-pressed="true"], .btn.on {
+    background: var(--brand);
+    border-color: var(--brand);
+    color: #fff;
+  }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+  .chip {
+    font: inherit;
+    font-size: .95rem;
+    font-weight: 600;
+    color: var(--ink);
+    background: var(--surface);
+    border: 1.5px solid var(--line);
+    border-radius: 999px;
+    min-height: var(--tap);
+    padding: 0 16px;
+    cursor: pointer;
+    touch-action: manipulation;
+    transition: transform .12s ease, background .12s ease, border-color .12s ease, color .12s ease;
+  }
+  .chip:active { transform: scale(.95); }
+  .chip[aria-pressed="true"] {
+    background: var(--brand);
+    border-color: var(--brand);
+    color: #fff;
+  }
+  .chip small { display: block; font-size: .72rem; font-weight: 500; opacity: .75; }
+
+  .screen { display: none; flex: 1; min-height: 0; }
+  .screen.active { display: flex; flex-direction: column; }
+
+  /* ---------- start screen ---------- */
+  #screen-start {
+    justify-content: center;
+    align-items: center;
+    gap: 18px;
+    text-align: center;
+    overflow-y: auto;
+    padding: 12px 4px;
+  }
+  .hero-emojis { font-size: clamp(1.3rem, 7.2vw, 2.6rem); letter-spacing: .06em; line-height: 1.2; white-space: nowrap; }
+  h1 {
+    margin: 0;
+    font-size: clamp(1.4rem, 7vw, 2rem);
+    line-height: 1.25;
+    color: var(--brand-ink);
+  }
+  h1 span { display: block; font-size: .55em; font-weight: 600; color: var(--ink-soft); letter-spacing: .04em; }
+  .lede { margin: 0; max-width: 30ch; color: var(--ink-soft); font-size: .95rem; line-height: 1.6; }
+  .group { width: 100%; max-width: 420px; }
+  .group > h2 {
+    margin: 0 0 8px;
+    font-size: .8rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    color: var(--ink-soft);
+    text-transform: uppercase;
+  }
+  #best-note { margin: 0; font-size: .85rem; color: var(--ink-soft); min-height: 1.2em; }
+  #btn-play { font-size: 1.1rem; padding: 0 40px; min-height: 56px; }
+
+  /* ---------- game screen ---------- */
+  .topbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-bottom: 8px;
+    flex: 0 0 auto;
+  }
+  .stats {
+    display: flex;
+    gap: 6px;
+    flex: 1;
+    min-width: 0;
+  }
+  .stat {
+    flex: 1;
+    background: var(--surface);
+    border: 1.5px solid var(--line);
+    border-radius: 12px;
+    padding: 5px 4px 6px;
+    line-height: 1.15;
+    min-width: 0;
+  }
+  .stat dt { font-size: .62rem; font-weight: 700; letter-spacing: .05em; color: var(--ink-soft); text-transform: uppercase; }
+  .stat dd { margin: 2px 0 0; font-size: 1.02rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+
+  .board-wrap {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    place-items: center;
+    position: relative;
+  }
+  @supports (container-type: size) { .board-wrap { container-type: size; } }
+
+  #board {
+    display: grid;
+    grid-template-columns: repeat(var(--cols), 1fr);
+    gap: var(--gap, 8px);
+    width: 100%;
+    aspect-ratio: var(--board-ratio);
+  }
+  @supports (width: 1cqh) {
+    #board { width: min(100cqw, calc(100cqh * var(--board-ratio))); }
+  }
+
+  .card {
+    all: unset;
+    display: block;
+    position: relative;
+    aspect-ratio: 3 / 4;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    perspective: 700px;
+  }
+  @supports (container-type: size) { .card { container-type: size; } }
+
+  .card .inner {
+    position: absolute;
+    inset: 0;
+    transform-style: preserve-3d;
+    transition: transform .34s cubic-bezier(.3, .9, .3, 1);
+    border-radius: var(--radius);
+  }
+  .card.flipped .inner, .card.matched .inner { transform: rotateY(180deg); }
+
+  .face {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2%;
+    border-radius: var(--radius);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    overflow: hidden;
+  }
+  .face.back {
+    background: linear-gradient(150deg, var(--card-back-a), var(--card-back-b));
+    box-shadow: var(--shadow);
+    color: rgba(255, 255, 255, .92);
+    font-size: clamp(1.1rem, 6vw, 2rem);
+  }
+  @supports (font-size: 1cqh) { .face.back { font-size: 34cqh; } }
+  .face.back::after {
+    content: "";
+    position: absolute;
+    inset: 8%;
+    border: 2px dashed rgba(255, 255, 255, .35);
+    border-radius: calc(var(--radius) - 4px);
+  }
+  .face.front {
+    background: var(--surface);
+    border: 2px solid var(--line);
+    transform: rotateY(180deg);
+    padding: 4%;
+  }
+  .card[data-kind="fruit"] .face.front { border-color: color-mix(in srgb, var(--fruit) 45%, var(--line)); }
+  .card[data-kind="vegetable"] .face.front { border-color: color-mix(in srgb, var(--veg) 45%, var(--line)); }
+
+  .emoji {
+    font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+    line-height: 1;
+    font-size: clamp(1.5rem, 11vw, 3.4rem);
+  }
+  @supports (font-size: 1cqh) { .emoji { font-size: 44cqh; } }
+
+  .label {
+    text-align: center;
+    line-height: 1.15;
+    color: var(--ink-soft);
+    font-weight: 600;
+    max-width: 100%;
+    overflow: hidden;
+    font-size: clamp(.52rem, 2.4vw, .8rem);
+  }
+  @supports (font-size: 1cqh) { .label { font-size: 11cqh; } }
+  .label .en { display: block; font-weight: 500; opacity: .8; font-size: .88em; }
+
+  .card.matched { cursor: default; }
+  .card.matched .face.front {
+    background: color-mix(in srgb, var(--brand) 12%, var(--surface));
+    border-color: var(--brand);
+  }
+  .card.matched .inner { animation: pop .42s ease; }
+  .card.miss .inner { animation: shake .4s ease; }
+
+  @keyframes pop {
+    0% { transform: rotateY(180deg) scale(1); }
+    45% { transform: rotateY(180deg) scale(1.11); }
+    100% { transform: rotateY(180deg) scale(1); }
+  }
+  @keyframes shake {
+    0%, 100% { transform: rotateY(180deg) translateX(0); }
+    25% { transform: rotateY(180deg) translateX(-5%); }
+    75% { transform: rotateY(180deg) translateX(5%); }
+  }
+
+  /* ---------- toast ---------- */
+  #toast {
+    position: absolute;
+    left: 50%;
+    top: 4px;
+    transform: translate(-50%, 0) scale(.9);
+    background: var(--brand);
+    color: #fff;
+    font-weight: 700;
+    font-size: clamp(.8rem, 3.6vw, 1.05rem);
+    line-height: 1.25;
+    padding: 6px 16px;
+    max-width: calc(100% - 16px);
+    text-align: center;
+    border-radius: 999px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, .22);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 5;
+  }
+  #toast.show { animation: toast 1.15s ease forwards; }
+  @keyframes toast {
+    0% { opacity: 0; transform: translate(-50%, 10px) scale(.88); }
+    18% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+    72% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -14px) scale(.95); }
+  }
+
+  /* ---------- win overlay ---------- */
+  #overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    display: none;
+    place-items: center;
+    padding: 20px;
+    background: rgba(12, 26, 14, .55);
+    backdrop-filter: blur(4px);
+  }
+  #overlay.show { display: grid; }
+  .sheet {
+    background: var(--surface);
+    border-radius: 24px;
+    padding: 26px 22px;
+    width: 100%;
+    max-width: 360px;
+    text-align: center;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, .3);
+    animation: rise .3s ease;
+  }
+  @keyframes rise { from { opacity: 0; transform: translateY(18px); } }
+  .sheet h2 { margin: 0 0 4px; font-size: 1.5rem; color: var(--brand-ink); }
+  .sheet .trophy { font-size: 3rem; line-height: 1; }
+  .result {
+    display: flex;
+    gap: 10px;
+    margin: 16px 0;
+  }
+  .result div {
+    flex: 1;
+    background: var(--surface-2);
+    border-radius: 14px;
+    padding: 10px 6px;
+  }
+  .result span { display: block; font-size: .7rem; color: var(--ink-soft); font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
+  .result strong { font-size: 1.3rem; font-variant-numeric: tabular-nums; }
+  #record { margin: 0 0 14px; font-weight: 800; color: var(--gold); min-height: 1.2em; }
+  .sheet .actions { display: flex; flex-direction: column; gap: 10px; }
+
+  .footer-hint { flex: 0 0 auto; text-align: center; font-size: .75rem; color: var(--ink-soft); padding-top: 6px; }
+
+  #install { display: none; }
+  #install.show { display: inline-block; }
+
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .card .inner { transition: opacity .18s linear; transform: none !important; }
+    .card .face.front { transform: none; opacity: 0; transition: opacity .18s linear; }
+    .card.flipped .face.front, .card.matched .face.front { opacity: 1; }
+    .card.flipped .face.back, .card.matched .face.back { opacity: 0; }
+    .card.matched .inner, .card.miss .inner { animation: none; }
+    #toast.show { animation: none; opacity: 1; }
+    .sheet { animation: none; }
+  }
+
+  /* wide screens / landscape: more columns, keep cards thumb-sized */
+  @media (min-width: 620px) and (orientation: landscape) {
+    #app { padding-inline: max(env(safe-area-inset-left), 5vw) max(env(safe-area-inset-right), 5vw); }
+  }
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ============ START SCREEN ============ -->
+  <section id="screen-start" class="screen active" aria-labelledby="title">
+    <div class="hero-emojis" aria-hidden="true">🍎 🥕 🍇 🥦 🍍 🍅</div>
+    <h1 id="title">จับคู่ผัก &amp; ผลไม้<span>Veggie &amp; Fruit Match</span></h1>
+    <p class="lede">เปิดการ์ดหาคู่ที่เหมือนกัน พร้อมเรียนคำศัพท์ไทย–อังกฤษไปด้วย</p>
+
+    <div class="group">
+      <h2>ระดับความยาก</h2>
+      <div class="chips" id="pick-level" role="group" aria-label="เลือกระดับความยาก"></div>
+    </div>
+
+    <div class="group">
+      <h2>หมวดที่เล่น</h2>
+      <div class="chips" id="pick-mode" role="group" aria-label="เลือกหมวดที่เล่น">
+        <button class="chip" type="button" data-mode="mixed" aria-pressed="true">🍎🥕 ผสม</button>
+        <button class="chip" type="button" data-mode="fruit" aria-pressed="false">🍇 ผลไม้</button>
+        <button class="chip" type="button" data-mode="vegetable" aria-pressed="false">🥦 ผัก</button>
+      </div>
+    </div>
+
+    <p id="best-note"></p>
+    <button class="btn primary" type="button" id="btn-play">▶ เริ่มเล่น</button>
+
+    <div class="chips">
+      <button class="btn icon" type="button" id="btn-sound-start" aria-label="เปิด/ปิดเสียงและการสั่น">🔊</button>
+      <button class="btn" type="button" id="btn-lang-start" aria-label="สลับภาษาชื่อบนการ์ด">ไทย + EN</button>
+      <button class="btn" type="button" id="install">⬇ ติดตั้งแอป</button>
+    </div>
+  </section>
+
+  <!-- ============ GAME SCREEN ============ -->
+  <section id="screen-game" class="screen" aria-labelledby="board-label">
+    <h2 id="board-label" class="sr-only">กระดานจับคู่</h2>
+
+    <div class="topbar">
+      <dl class="stats">
+        <div class="stat"><dt>เวลา</dt><dd id="ui-time">0:00</dd></div>
+        <div class="stat"><dt>เปิดไป</dt><dd id="ui-moves">0</dd></div>
+        <div class="stat"><dt>คู่ที่ได้</dt><dd id="ui-pairs">0/8</dd></div>
+      </dl>
+      <button class="btn icon" type="button" id="btn-sound" aria-label="เปิด/ปิดเสียงและการสั่น">🔊</button>
+      <button class="btn icon" type="button" id="btn-lang" aria-label="สลับภาษาชื่อบนการ์ด">ก</button>
+      <button class="btn icon" type="button" id="btn-quit" aria-label="ออกไปหน้าเริ่มเกม">✕</button>
+    </div>
+
+    <div class="board-wrap">
+      <div id="board" role="grid" aria-label="การ์ดผักและผลไม้"></div>
+      <div id="toast" role="status" aria-live="polite"></div>
+    </div>
+
+    <p class="footer-hint">แตะการ์ดสองใบให้เป็นคู่เดียวกัน</p>
+  </section>
+
+</div>
+
+<!-- ============ WIN OVERLAY ============ -->
+<div id="overlay" role="dialog" aria-modal="true" aria-labelledby="win-title">
+  <div class="sheet">
+    <div class="trophy" aria-hidden="true">🏆</div>
+    <h2 id="win-title">เก่งมาก!</h2>
+    <p id="win-sub" class="lede" style="margin:4px auto 0"></p>
+    <div class="result">
+      <div><span>เวลา</span><strong id="win-time">0:00</strong></div>
+      <div><span>เปิดไป</span><strong id="win-moves">0</strong></div>
+    </div>
+    <p id="record"></p>
+    <div class="actions">
+      <button class="btn primary" type="button" id="btn-again">🔄 เล่นอีกครั้ง</button>
+      <button class="btn" type="button" id="btn-home">🏠 กลับหน้าแรก</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  /* =========================================================
+     1. DATA — เพิ่ม/แก้รายการผักผลไม้ได้ที่นี่ที่เดียว
+     ========================================================= */
+  const FOODS = [
+    { emoji: '🍎', th: 'แอปเปิล',   en: 'Apple',      kind: 'fruit' },
+    { emoji: '🍌', th: 'กล้วย',     en: 'Banana',     kind: 'fruit' },
+    { emoji: '🍇', th: 'องุ่น',      en: 'Grapes',     kind: 'fruit' },
+    { emoji: '🍓', th: 'สตรอว์เบอร์รี', en: 'Strawberry', kind: 'fruit' },
+    { emoji: '🍉', th: 'แตงโม',     en: 'Watermelon', kind: 'fruit' },
+    { emoji: '🍊', th: 'ส้ม',        en: 'Orange',     kind: 'fruit' },
+    { emoji: '🍍', th: 'สับปะรด',   en: 'Pineapple',  kind: 'fruit' },
+    { emoji: '🥭', th: 'มะม่วง',    en: 'Mango',      kind: 'fruit' },
+    { emoji: '🍑', th: 'พีช',       en: 'Peach',      kind: 'fruit' },
+    { emoji: '🍐', th: 'สาลี่',      en: 'Pear',       kind: 'fruit' },
+    { emoji: '🥝', th: 'กีวี',       en: 'Kiwi',       kind: 'fruit' },
+    { emoji: '🍒', th: 'เชอร์รี',    en: 'Cherry',     kind: 'fruit' },
+    { emoji: '🥥', th: 'มะพร้าว',   en: 'Coconut',    kind: 'fruit' },
+    { emoji: '🥕', th: 'แครอท',     en: 'Carrot',     kind: 'vegetable' },
+    { emoji: '🌽', th: 'ข้าวโพด',   en: 'Corn',       kind: 'vegetable' },
+    { emoji: '🥦', th: 'บรอกโคลี',  en: 'Broccoli',   kind: 'vegetable' },
+    { emoji: '🍅', th: 'มะเขือเทศ', en: 'Tomato',     kind: 'vegetable' },
+    { emoji: '🥒', th: 'แตงกวา',    en: 'Cucumber',   kind: 'vegetable' },
+    { emoji: '🍆', th: 'มะเขือม่วง', en: 'Eggplant',   kind: 'vegetable' },
+    { emoji: '🫑', th: 'พริกหยวก',  en: 'Bell pepper',kind: 'vegetable' },
+    { emoji: '🧄', th: 'กระเทียม',  en: 'Garlic',     kind: 'vegetable' },
+    { emoji: '🧅', th: 'หัวหอม',    en: 'Onion',      kind: 'vegetable' },
+    { emoji: '🥬', th: 'ผักกาดขาว', en: 'Cabbage',    kind: 'vegetable' },
+    { emoji: '🥔', th: 'มันฝรั่ง',   en: 'Potato',     kind: 'vegetable' },
+    { emoji: '🌶️', th: 'พริก',       en: 'Chili',      kind: 'vegetable' },
+    { emoji: '🫛', th: 'ถั่วลันเตา',  en: 'Pea pods',   kind: 'vegetable' }
+  ];
+
+  const LEVELS = {
+    easy:   { pairs: 6,  cols: 3, th: 'ง่าย',  en: '12 ใบ' },
+    normal: { pairs: 8,  cols: 4, th: 'ปกติ',  en: '16 ใบ' },
+    hard:   { pairs: 10, cols: 4, th: 'ยาก',   en: '20 ใบ' },
+    expert: { pairs: 12, cols: 4, th: 'โหด',   en: '24 ใบ' }
+  };
+
+  const MODE_LABEL = { mixed: 'ผสม', fruit: 'ผลไม้', vegetable: 'ผัก' };
+  const LANGS = ['both', 'th', 'en'];
+  const LANG_LABEL = { both: 'ไทย + EN', th: 'ไทย', en: 'English' };
+  const LANG_SHORT = { both: 'ก/A', th: 'ก', en: 'A' };
+  const FLIP_BACK_MS = 850;
+
+  /* =========================================================
+     2. PREFS + BEST SCORES (localStorage, ทนต่อ storage ที่ปิดไว้)
+     ========================================================= */
+  const PREFS_KEY = 'vfmatch.prefs.v1';
+  const BEST_KEY = 'vfmatch.best.v1';
+
+  const store = {
+    get(key, fallback) {
+      try {
+        const raw = localStorage.getItem(key);
+        return raw ? { ...fallback, ...JSON.parse(raw) } : { ...fallback };
+      } catch (_) { return { ...fallback }; }
+    },
+    set(key, value) {
+      try { localStorage.setItem(key, JSON.stringify(value)); } catch (_) { /* ignore */ }
+    }
+  };
+
+  const prefs = store.get(PREFS_KEY, { sound: true, lang: 'both', level: 'normal', mode: 'mixed' });
+  if (!LEVELS[prefs.level]) prefs.level = 'normal';
+  if (!MODE_LABEL[prefs.mode]) prefs.mode = 'mixed';
+  if (!LANGS.includes(prefs.lang)) prefs.lang = 'both';
+  const savePrefs = () => store.set(PREFS_KEY, prefs);
+
+  let best = store.get(BEST_KEY, {});
+
+  /* =========================================================
+     3. FEEDBACK — เสียงสังเคราะห์ + การสั่น (ปิดได้ทั้งคู่)
+     ========================================================= */
+  const feedback = (() => {
+    let ctx = null;
+    const canVibrate = typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function';
+
+    function audio() {
+      if (!prefs.sound) return null;
+      try {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return null;
+        if (!ctx) ctx = new AC();
+        if (ctx.state === 'suspended') ctx.resume();
+        return ctx;
+      } catch (_) { return null; }
+    }
+
+    function tone(freq, start, dur, gain = 0.16, type = 'sine') {
+      const ac = audio();
+      if (!ac) return;
+      const t0 = ac.currentTime + start;
+      const osc = ac.createOscillator();
+      const amp = ac.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, t0);
+      amp.gain.setValueAtTime(0.0001, t0);
+      amp.gain.exponentialRampToValueAtTime(gain, t0 + 0.012);
+      amp.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      osc.connect(amp).connect(ac.destination);
+      osc.start(t0);
+      osc.stop(t0 + dur + 0.02);
+    }
+
+    function buzz(pattern) {
+      if (!prefs.sound || !canVibrate) return;
+      try { navigator.vibrate(pattern); } catch (_) { /* ignore */ }
+    }
+
+    return {
+      unlock() { audio(); },
+      flip()  { tone(520, 0, 0.07, 0.10, 'triangle'); buzz(10); },
+      match() { tone(659, 0, 0.12); tone(988, 0.09, 0.20); buzz(35); },
+      miss()  { tone(196, 0, 0.16, 0.13, 'sawtooth'); buzz([20, 45, 20]); },
+      win()   { [523, 659, 784, 1047].forEach((f, i) => tone(f, i * 0.13, 0.28)); buzz([40, 60, 40, 60, 90]); }
+    };
+  })();
+
+  /* =========================================================
+     4. STATE + DOM
+     ========================================================= */
+  const state = {
+    deck: [],
+    flipped: [],
+    matched: 0,
+    moves: 0,
+    locked: false,
+    playing: false,
+    elapsed: 0,      // ms ที่สะสมไว้แล้ว
+    since: 0,        // timestamp ตอนเริ่มนับรอบล่าสุด (0 = หยุดนับ)
+    timerId: 0,
+    pendingId: 0
+  };
+
+  const $ = (sel) => document.querySelector(sel);
+  const el = {
+    start: $('#screen-start'),
+    game: $('#screen-game'),
+    board: $('#board'),
+    toast: $('#toast'),
+    time: $('#ui-time'),
+    moves: $('#ui-moves'),
+    pairs: $('#ui-pairs'),
+    bestNote: $('#best-note'),
+    pickLevel: $('#pick-level'),
+    pickMode: $('#pick-mode'),
+    overlay: $('#overlay'),
+    winTime: $('#win-time'),
+    winMoves: $('#win-moves'),
+    winSub: $('#win-sub'),
+    record: $('#record'),
+    install: $('#install')
+  };
+
+  const fmtTime = (ms) => {
+    const s = Math.max(0, Math.floor(ms / 1000));
+    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  };
+  const bestKey = () => `${prefs.level}:${prefs.mode}`;
+
+  /* =========================================================
+     5. START SCREEN
+     ========================================================= */
+  function buildLevelChips() {
+    el.pickLevel.innerHTML = '';
+    for (const [key, lv] of Object.entries(LEVELS)) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'chip';
+      b.dataset.level = key;
+      b.setAttribute('aria-pressed', String(key === prefs.level));
+      b.innerHTML = `${lv.th}<small>${lv.en}</small>`;
+      el.pickLevel.appendChild(b);
+    }
+  }
+
+  function syncChips(container, attr, value) {
+    container.querySelectorAll('.chip').forEach((c) => {
+      c.setAttribute('aria-pressed', String(c.dataset[attr] === value));
+    });
+  }
+
+  function renderBestNote() {
+    const rec = best[bestKey()];
+    const lv = LEVELS[prefs.level];
+    el.bestNote.textContent = rec
+      ? `🏅 สถิติดีที่สุด (${lv.th} · ${MODE_LABEL[prefs.mode]}): ${fmtTime(rec.time)} · ${rec.moves} ครั้ง`
+      : `ยังไม่มีสถิติของ ${lv.th} · ${MODE_LABEL[prefs.mode]} — มาสร้างกันเลย!`;
+  }
+
+  function syncLangButtons() {
+    $('#btn-lang-start').textContent = LANG_LABEL[prefs.lang];
+    $('#btn-lang').textContent = LANG_SHORT[prefs.lang];
+  }
+
+  function syncSoundButtons() {
+    const icon = prefs.sound ? '🔊' : '🔇';
+    const label = prefs.sound ? 'ปิดเสียงและการสั่น' : 'เปิดเสียงและการสั่น';
+    ['#btn-sound', '#btn-sound-start'].forEach((sel) => {
+      const b = $(sel);
+      b.textContent = icon;
+      b.setAttribute('aria-label', label);
+      b.classList.toggle('on', prefs.sound);
+    });
+  }
+
+  el.pickLevel.addEventListener('click', (e) => {
+    const chip = e.target.closest('.chip');
+    if (!chip) return;
+    prefs.level = chip.dataset.level;
+    savePrefs();
+    syncChips(el.pickLevel, 'level', prefs.level);
+    renderBestNote();
+  });
+
+  el.pickMode.addEventListener('click', (e) => {
+    const chip = e.target.closest('.chip');
+    if (!chip) return;
+    prefs.mode = chip.dataset.mode;
+    savePrefs();
+    syncChips(el.pickMode, 'mode', prefs.mode);
+    renderBestNote();
+  });
+
+  function toggleSound() {
+    prefs.sound = !prefs.sound;
+    savePrefs();
+    syncSoundButtons();
+    if (prefs.sound) { feedback.unlock(); feedback.flip(); }
+  }
+
+  function cycleLang() {
+    prefs.lang = LANGS[(LANGS.indexOf(prefs.lang) + 1) % LANGS.length];
+    savePrefs();
+    syncLangButtons();
+    paintLabels();
+  }
+
+  ['#btn-sound', '#btn-sound-start'].forEach((s) => $(s).addEventListener('click', toggleSound));
+  ['#btn-lang', '#btn-lang-start'].forEach((s) => $(s).addEventListener('click', cycleLang));
+
+  /* =========================================================
+     6. เริ่มเกม / สร้างสำรับ
+     ========================================================= */
+  function pickFoods(count, mode) {
+    const pool = mode === 'mixed' ? FOODS.slice() : FOODS.filter((f) => f.kind === mode);
+    shuffle(pool);
+    return pool.slice(0, count);
+  }
+
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  function labelHTML(food) {
+    if (prefs.lang === 'th') return `<span class="th">${food.th}</span>`;
+    if (prefs.lang === 'en') return `<span class="en">${food.en}</span>`;
+    return `<span class="th">${food.th}</span><span class="en">${food.en}</span>`;
+  }
+
+  function paintLabels() {
+    el.board.querySelectorAll('.card').forEach((card) => {
+      const food = state.deck[Number(card.dataset.i)];
+      if (food) card.querySelector('.label').innerHTML = labelHTML(food);
+    });
+  }
+
+  function newGame() {
+    clearTimeout(state.pendingId);
+    const lv = LEVELS[prefs.level];
+    const picked = pickFoods(lv.pairs, prefs.mode);
+    state.deck = shuffle(picked.concat(picked));
+    state.flipped = [];
+    state.matched = 0;
+    state.moves = 0;
+    state.locked = false;
+    state.playing = true;
+    state.elapsed = 0;
+    state.since = Date.now();
+
+    const rows = Math.ceil(state.deck.length / lv.cols);
+    el.board.style.setProperty('--cols', lv.cols);
+    el.board.style.setProperty('--board-ratio', (lv.cols * 3) / (rows * 4));
+    el.board.style.setProperty('--gap', lv.cols > 3 ? '7px' : '9px');
+
+    el.board.innerHTML = state.deck.map((food, i) => `
+      <button class="card" type="button" data-i="${i}" data-kind="${food.kind}"
+              role="gridcell" aria-label="การ์ดใบที่ ${i + 1} คว่ำอยู่">
+        <span class="inner">
+          <span class="face back" aria-hidden="true">🌱</span>
+          <span class="face front">
+            <span class="emoji">${food.emoji}</span>
+            <span class="label">${labelHTML(food)}</span>
+          </span>
+        </span>
+      </button>`).join('');
+
+    el.overlay.classList.remove('show');
+    el.start.classList.remove('active');
+    el.game.classList.add('active');
+    updateHUD();
+    startTimer();
+  }
+
+  /* =========================================================
+     7. Timer (หยุดเองเมื่อสลับแอปออกไป)
+     ========================================================= */
+  function tick() {
+    const ms = state.elapsed + (state.since ? Date.now() - state.since : 0);
+    el.time.textContent = fmtTime(ms);
+  }
+
+  function startTimer() {
+    clearInterval(state.timerId);
+    state.timerId = setInterval(tick, 250);
+    tick();
+  }
+
+  function stopTimer() {
+    clearInterval(state.timerId);
+    state.timerId = 0;
+  }
+
+  function pauseClock() {
+    if (!state.since) return;
+    state.elapsed += Date.now() - state.since;
+    state.since = 0;
+  }
+
+  function resumeClock() {
+    if (state.playing && !state.since) state.since = Date.now();
+  }
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { pauseClock(); stopTimer(); }
+    else if (state.playing) { resumeClock(); startTimer(); }
+  });
+
+  const totalMs = () => state.elapsed + (state.since ? Date.now() - state.since : 0);
+
+  /* =========================================================
+     8. Gameplay
+     ========================================================= */
+  function updateHUD() {
+    el.moves.textContent = state.moves;
+    el.pairs.textContent = `${state.matched}/${state.deck.length / 2}`;
+  }
+
+  function showToast(food) {
+    el.toast.textContent = `${food.th} · ${food.en}`;
+    el.toast.classList.remove('show');
+    void el.toast.offsetWidth; // restart animation
+    el.toast.classList.add('show');
+  }
+
+  function cardAt(i) { return el.board.querySelector(`.card[data-i="${i}"]`); }
+
+  function flip(i) {
+    if (!state.playing || state.locked) return;
+    const card = cardAt(i);
+    if (!card || card.classList.contains('flipped') || card.classList.contains('matched')) return;
+
+    feedback.unlock();
+    card.classList.add('flipped');
+    card.setAttribute('aria-label', `${state.deck[i].th} ${state.deck[i].en}`);
+    state.flipped.push(i);
+    feedback.flip();
+
+    if (state.flipped.length < 2) return;
+
+    const [a, b] = state.flipped;
+    state.moves++;
+    updateHUD();
+
+    if (state.deck[a].emoji === state.deck[b].emoji) {
+      state.flipped = [];
+      state.matched++;
+      [a, b].forEach((k) => {
+        const c = cardAt(k);
+        c.classList.remove('flipped');
+        c.classList.add('matched');
+        c.setAttribute('aria-disabled', 'true');
+      });
+      updateHUD();
+      feedback.match();
+      showToast(state.deck[a]);
+      if (state.matched === state.deck.length / 2) win();
+    } else {
+      state.locked = true;
+      [a, b].forEach((k) => cardAt(k).classList.add('miss'));
+      feedback.miss();
+      state.pendingId = setTimeout(() => {
+        [a, b].forEach((k) => {
+          const c = cardAt(k);
+          if (!c) return;
+          c.classList.remove('flipped', 'miss');
+          c.setAttribute('aria-label', `การ์ดใบที่ ${k + 1} คว่ำอยู่`);
+        });
+        state.flipped = [];
+        state.locked = false;
+      }, FLIP_BACK_MS);
+    }
+  }
+
+  // pointerdown = ตอบสนองไวบนมือถือ (ไม่รอ 300ms), keydown = รองรับคีย์บอร์ด
+  el.board.addEventListener('pointerdown', (e) => {
+    const card = e.target.closest('.card');
+    if (card) flip(Number(card.dataset.i));
+  });
+  el.board.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const card = e.target.closest('.card');
+    if (!card) return;
+    e.preventDefault();
+    flip(Number(card.dataset.i));
+  });
+
+  /* =========================================================
+     9. จบเกม + สถิติ
+     ========================================================= */
+  function win() {
+    const ms = totalMs();
+    pauseClock();
+    stopTimer();
+    state.playing = false;
+    state.locked = true;
+    el.time.textContent = fmtTime(ms);
+
+    const key = bestKey();
+    const prev = best[key];
+    const isRecord = !prev || ms < prev.time || (ms === prev.time && state.moves < prev.moves);
+    if (isRecord) {
+      best = { ...best, [key]: { time: ms, moves: state.moves } };
+      store.set(BEST_KEY, best);
+    }
+
+    el.winTime.textContent = fmtTime(ms);
+    el.winMoves.textContent = state.moves;
+    el.winSub.textContent = `${LEVELS[prefs.level].th} · ${MODE_LABEL[prefs.mode]} — จับคู่ครบทุกใบแล้ว`;
+    el.record.textContent = isRecord
+      ? '🎉 สถิติใหม่!'
+      : prev ? `สถิติดีที่สุด ${fmtTime(prev.time)} · ${prev.moves} ครั้ง` : '';
+
+    setTimeout(() => {
+      el.overlay.classList.add('show');
+      $('#btn-again').focus();
+    }, 520);
+    feedback.win();
+  }
+
+  function goHome() {
+    clearTimeout(state.pendingId);
+    stopTimer();
+    state.playing = false;
+    state.locked = false;
+    el.overlay.classList.remove('show');
+    el.game.classList.remove('active');
+    el.start.classList.add('active');
+    renderBestNote();
+  }
+
+  $('#btn-play').addEventListener('click', () => { feedback.unlock(); newGame(); });
+  $('#btn-again').addEventListener('click', newGame);
+  $('#btn-home').addEventListener('click', goHome);
+  $('#btn-quit').addEventListener('click', goHome);
+
+  /* =========================================================
+     10. PWA — service worker + ปุ่มติดตั้ง
+     ========================================================= */
+  let installEvent = null;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    installEvent = e;
+    el.install.classList.add('show');
+  });
+  el.install.addEventListener('click', async () => {
+    if (!installEvent) return;
+    installEvent.prompt();
+    await installEvent.userChoice.catch(() => {});
+    installEvent = null;
+    el.install.classList.remove('show');
+  });
+  window.addEventListener('appinstalled', () => el.install.classList.remove('show'));
+
+  // เปิดผ่าน file:// จะลงทะเบียน service worker ไม่ได้ — ต้องไม่ทำให้เกมพัง
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    });
+  }
+
+  /* =========================================================
+     11. boot
+     ========================================================= */
+  buildLevelChips();
+  syncChips(el.pickMode, 'mode', prefs.mode);
+  syncLangButtons();
+  syncSoundButtons();
+  renderBestNote();
+})();
+</script>
+</body>
+</html>
