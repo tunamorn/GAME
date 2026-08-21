@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="จับคู่ผักผลไม้">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#57b96f"/>
+      <stop offset="1" stop-color="#22713d"/>
+    </linearGradient>
+    <linearGradient id="apple" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ff7b5a"/>
+      <stop offset="1" stop-color="#d93a24"/>
+    </linearGradient>
+    <linearGradient id="carrot" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffb04d"/>
+      <stop offset="1" stop-color="#e07a1c"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" fill="url(#bg)"/>
+
+  <!-- การ์ดใบซ้าย: แอปเปิล -->
+  <g transform="rotate(-8 176 268)">
+    <rect x="98" y="150" width="156" height="208" rx="26" fill="#ffffff" opacity="0.96"/>
+    <path d="M176 214c-30 0-52 22-52 54 0 34 26 66 52 66s52-32 52-66c0-32-22-54-52-54z" fill="url(#apple)"/>
+    <path d="M176 214c2-16 14-28 30-30-2 16-14 28-30 30z" fill="#3f8f3a"/>
+    <rect x="172" y="196" width="8" height="22" rx="4" fill="#7a4a22"/>
+  </g>
+
+  <!-- การ์ดใบขวา: แครอท -->
+  <g transform="rotate(8 336 268)">
+    <rect x="258" y="150" width="156" height="208" rx="26" fill="#ffffff" opacity="0.96"/>
+    <path d="M336 336c-16-22-40-64-30-84 8-16 44-16 52 0 10 20-6 62-22 84z" fill="url(#carrot)"/>
+    <path d="M336 244c-10-18-30-28-46-24 6 16 24 26 46 24z" fill="#3f8f3a"/>
+    <path d="M336 244c10-18 30-28 46-24-6 16-24 26-46 24z" fill="#57b96f"/>
+  </g>
+
+  <!-- จุดบอกว่า "จับคู่กันแล้ว" -->
+  <circle cx="256" cy="400" r="20" fill="#ffffff" opacity="0.95"/>
+  <path d="M246 400l7 8 14-16" fill="none" stroke="#22713d" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
